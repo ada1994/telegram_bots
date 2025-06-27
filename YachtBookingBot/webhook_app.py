@@ -15,7 +15,7 @@ app = Flask(__name__)
 @app.route("/", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), application.bot)
-    application.update_queue.put_nowait(update)
+    application.process_update(update)  # 关键改动
     return "ok"
 
 @app.route("/", methods=["GET"])
