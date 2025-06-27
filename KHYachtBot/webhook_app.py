@@ -5,17 +5,18 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("欢迎使用 KHYachtBot！")
+    await update.message.reply_text("欢迎使用 KHYachtBot！")  # 其它机器人可自定义
 
 TOKEN = os.environ.get("TOKEN")
 application = Application.builder().token(TOKEN).build()
 application.add_handler(CommandHandler("start", start))
 
-# 初始化 Application，必须在事件循环中完成
+# 必须初始化 Application
 async def initialize_app():
-    await application.initialize()
+    if not getattr(application, "is_initialized", False):
+        await application.initialize()
+        application.is_initialized = True
 
-# Flask
 app = Flask(__name__)
 
 @app.before_first_request
