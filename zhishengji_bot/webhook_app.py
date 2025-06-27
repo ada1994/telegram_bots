@@ -1,4 +1,5 @@
 import os
+import asyncio
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -15,7 +16,7 @@ app = Flask(__name__)
 @app.route("/", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), application.bot)
-    application.process_update(update)  # 关键改动
+    asyncio.run(application.process_update(update))
     return "ok"
 
 @app.route("/", methods=["GET"])
