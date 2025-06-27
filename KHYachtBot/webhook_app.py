@@ -11,19 +11,11 @@ TOKEN = os.environ.get("TOKEN")
 application = Application.builder().token(TOKEN).build()
 application.add_handler(CommandHandler("start", start))
 
-# 必须初始化 Application
-async def initialize_app():
-    if not getattr(application, "is_initialized", False):
-        await application.initialize()
-        application.is_initialized = True
+# --- 关键：模块加载时就初始化 Telegram Application ---
+loop = asyncio.get_event_loop()
+loop.run_until_complete(application.initialize())
 
 app = Flask(__name__)
-
-@app.before_first_request
-def init_telegram_app():
-    # 只初始化一次
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(initialize_app())
 
 @app.route("/", methods=["POST"])
 def webhook():
