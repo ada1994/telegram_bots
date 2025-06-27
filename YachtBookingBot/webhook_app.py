@@ -2,8 +2,8 @@ import os
 import asyncio
 import logging
 from flask import Flask, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
 
 # 启用日志记录
 logging.basicConfig(level=logging.INFO)
@@ -26,18 +26,32 @@ yacht_sizes = {
 
 ADMIN_ID = 7158664620  # 你的 Telegram 用户ID
 
+# 底部大菜单
+reply_keyboard = [
+    ["⛵️游艇价格", "🏠酒店预定", "💃游艇宝贝"],
+    ["🪪护照签证", "🚁直升机", "🚗接机租车"],
+    ["🪪驾驶证办理", "🚤快艇包接送"]
+]
+reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info("Received /start command")
+    user = update.effective_user
 
-    # 创建每排两个按钮的布局
+    # 1. 先发底部菜单
+    await update.message.reply_text(
+        "欢迎使用本机器人！请选择功能：",
+        reply_markup=reply_markup
+    )
+
+    # 2. 再发游艇信息采集（InlineKeyboard）
     keyboard = [
         [InlineKeyboardButton(size, url=url) for size, url in list(yacht_sizes.items())[i:i+2]]
         for i in range(0, len(yacht_sizes), 2)
     ]
     keyboard.append([InlineKeyboardButton("✈ 联系客服 Cust Serv", url='https://t.me/Boatbabes')])
     keyboard.append([InlineKeyboardButton("📅 在线预订", callback_data='book_now')])
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    inline_markup = InlineKeyboardMarkup(keyboard)
 
     message_text = (
         "🤖 <b>西港游艇服务</b>\n"
@@ -68,9 +82,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📩 预订请点击菜单或联系人工客服 👉 @Boatbabes\n"
         "Click the menu or contact live support 👉 @Boatbabes"
     )
+    await update.message.reply_text(
+        message_text,
+        reply_markup=inline_markup,
+        parse_mode="HTML",
+        disable_web_page_preview=True
+    )
 
-    # ====== 通知管理员 ======
-    user = update.effective_user
+    # 通知管理员
     msg = (
         f"🆕 昵称: {user.full_name}\n"
         f"🆔 UserID: {user.id}\n"
@@ -81,14 +100,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logging.error(f"通知管理员失败: {e}")
 
-    # ====== 给客户回复欢迎消息 ======
-    await update.message.reply_text(
-        message_text,
-        reply_markup=reply_markup,
-        parse_mode="HTML",
-        disable_web_page_preview=True
-    )
-
 async def book_now_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -97,7 +108,6 @@ async def book_now_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 TOKEN = os.environ.get("TOKEN")
 application = Application.builder().token(TOKEN).build()
 application.add_handler(CommandHandler("start", start))
-from telegram.ext import CallbackQueryHandler
 application.add_handler(CallbackQueryHandler(book_now_callback, pattern='^book_now$'))
 
 # 初始化 Telegram Application
