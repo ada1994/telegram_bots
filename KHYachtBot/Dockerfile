@@ -6,4 +6,4 @@ COPY . /app
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-CMD ["python", "KHYachtBot.py"]
+CMD ["python", "webhook_app.py"]
