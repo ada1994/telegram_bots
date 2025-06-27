@@ -11,12 +11,18 @@ TOKEN = os.environ.get("TOKEN")
 application = Application.builder().token(TOKEN).build()
 application.add_handler(CommandHandler("start", start))
 
+# 在模块加载时初始化 Telegram Application
+loop = asyncio.get_event_loop()
+loop.run_until_complete(application.initialize())
+
 app = Flask(__name__)
 
 @app.route("/", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    asyncio.run(application.process_update(update))
+    update_json = request.get_json(force=True)
+    update = Update.de_json(update_json, application.bot)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(application.process_update(update))
     return "ok"
 
 @app.route("/", methods=["GET"])
