@@ -3,9 +3,8 @@ from flask import Flask, request
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# 你的 start handler，可以根据实际需求修改
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("欢迎使用 KHYachtBot！")
+    await update.message.reply_text("欢迎使用 YachtBookingBot！")
 
 TOKEN = os.environ.get("TOKEN")
 application = Application.builder().token(TOKEN).build()
@@ -15,7 +14,6 @@ app = Flask(__name__)
 
 @app.route("/", methods=["POST"])
 def webhook():
-    # 接收 Telegram 推送的 update
     update = Update.de_json(request.get_json(force=True), application.bot)
     application.update_queue.put_nowait(update)
     return "ok"
@@ -25,5 +23,4 @@ def index():
     return "Bot is running!", 200
 
 if __name__ == "__main__":
-    # 启动 Flask，监听 Cloud Run 要求的端口
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
