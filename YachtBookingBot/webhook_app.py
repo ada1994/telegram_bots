@@ -10,18 +10,9 @@ logging.basicConfig(level=logging.INFO)
 
 # 游艇信息字典
 yacht_sizes = {
-    "38ft 双体快艇👨‍👩‍👧‍👦20人": "https://t.me/youtingbaby/122", 
-    "39ft 快艇Speedboat👨‍👩‍👧‍👦20人": "https://t.me/youtingbaby/115", 
-    "39ft 钓鱼艇 ‍👩‍👧‍👦12人": "https://t.me/youtingbaby/109", 
-    "42ft 双体Yacht👨‍👩‍👧‍👦10人": "https://t.me/youtingbaby/40?single", 
-    "42ft 德宏Yacht👨‍👩‍👧‍👦12人": "https://t.me/youtingbaby/71", 
-    "54ft Azimut👨‍👩‍👧‍👦15人": "https://t.me/youtingbaby/30",
-    "62ft 星瑞Sease‍👩‍👧‍👦19人": "https://t.me/youtingbaby/107",
-    "63ft Sea-Stella👨‍👩‍👧‍👦19人": "https://t.me/youtingbaby/102",
-    "63ft JF游艇👨‍👩‍👧‍👦20人": "https://t.me/youtingbaby/158",
-    "65ft JP👨‍👩‍👧‍👦19人": "https://t.me/youtingbaby/89",
-    "95尺 ZH游艇👨‍👩‍👧‍👦50人": "https://t.me/youtingbaby/150",
-    "95ft 水神Aquitalia👨‍👩‍👧‍👦50人": "https://t.me/youtingbaby/69"
+    "🚤 👉游艇推荐 More yachts": "https://t.me/youtingbaby/166", 
+    "🏠👉 酒店推荐 /（旅行社代登记入住） ": "https://t.me/youtingbaby/345", 
+    "💃👉 游艇宝贝 DJ Baby": "http://t.me/YachtDJ", 
 }
 
 ADMIN_ID = 7158664620  # 你的 Telegram 用户ID
@@ -40,7 +31,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 1. 先发底部菜单
     await update.message.reply_text(
-        "欢迎使用本机器人！请选择功能：",
+        "了解其他服务，请点击底部菜单选择：",
         reply_markup=reply_markup
     )
 
@@ -50,7 +41,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for i in range(0, len(yacht_sizes), 2)
     ]
     keyboard.append([InlineKeyboardButton("✈ 联系客服 Cust Serv", url='https://t.me/Boatbabes')])
-    keyboard.append([InlineKeyboardButton("📅 在线预订", callback_data='book_now')])
     inline_markup = InlineKeyboardMarkup(keyboard)
 
     message_text = (
