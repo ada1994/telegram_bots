@@ -10,9 +10,9 @@ logging.basicConfig(level=logging.INFO)
 
 # 游艇信息字典
 yacht_sizes = {
-    "🚤 👉游艇推荐 More yachts": "https://t.me/youtingbaby/166", 
-    "🏠👉 酒店推荐 /（旅行社代登记入住） ": "https://t.me/youtingbaby/345", 
-    "💃👉 游艇宝贝 DJ Baby": "http://t.me/YachtDJ", 
+    "🚤 游艇推荐 More yachts": "https://t.me/youtingbaby/166", 
+    "💃 游艇宝贝 DJ Baby": "http://t.me/YachtDJ", 
+    "🏠 酒店推荐（旅行社代登记入住）": "https://t.me/youtingbaby/345"
 }
 
 ADMIN_ID = 7158664620  # 你的 Telegram 用户ID
@@ -37,8 +37,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 2. 再发游艇信息采集（InlineKeyboard）
     keyboard = [
-        [InlineKeyboardButton(size, url=url) for size, url in list(yacht_sizes.items())[i:i+1]]
-        for i in range(0, len(yacht_sizes), 1)
+        [InlineKeyboardButton(size, url=url) for size, url in list(yacht_sizes.items())[i:i+2]]
+        for i in range(0, len(yacht_sizes), 2)
     ]
     keyboard.append([InlineKeyboardButton("✈ 联系客服 Cust Serv", url='https://t.me/Boatbabes')])
     inline_markup = InlineKeyboardMarkup(keyboard)
@@ -62,7 +62,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "<a href='https://t.me/youtingbaby/89'>65ft JP游艇👨‍👩‍👧‍👦19人 2600$</a>\n"
         "<a href='https://t.me/youtingbaby/69'>95ft 水神Aquitalia👨‍👩‍👧‍👦50人 4500$</a>\n"
         "<a href='https://t.me/youtingbaby/150'>95ft ZH忠恒👨‍👩‍👧‍50人 5500$</a>\n\n"
-        "⏰ 出海时间：09:00 – 17:00\n"
+        "⏰ 常规出海时间：09:00 – 18:00\n"
         "📍 航线：西港码头 – 高龙岛 / 撒冷岛\n"
         "Route: Koh Rong / Koh Rong Sanloem\n"
         "📲 支持中文 & English 服务\n\n"
