@@ -37,8 +37,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 2. 再发游艇信息采集（InlineKeyboard）
     keyboard = [
-        [InlineKeyboardButton(size, url=url) for size, url in list(yacht_sizes.items())[i:i+2]]
-        for i in range(0, len(yacht_sizes), 2)
+        [InlineKeyboardButton(size, url=url) for size, url in list(yacht_sizes.items())[i:i+1]]
+        for i in range(0, len(yacht_sizes), 1)
     ]
     keyboard.append([InlineKeyboardButton("✈ 联系客服 Cust Serv", url='https://t.me/Boatbabes')])
     inline_markup = InlineKeyboardMarkup(keyboard)
@@ -69,8 +69,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🎉 <b>自费服务内容：</b>\n"
         "DJ宝贝｜水上项目｜深潜浮潜｜摩托艇｜山地车｜岛上食宿\n"
         "Boat Babes | Water Sports | Diving & Snorkeling | Jet Ski | ATV | Island Stay & Meals\n\n"
-        "📩 预订请点击菜单或联系人工客服 👉 @Boatbabes\n"
-        "Click the menu or contact live support 👉 @Boatbabes"
+        "📩 预订请点击菜单或联系人工客服 👉 @Boatbabes"
     )
     await update.message.reply_text(
         message_text,
@@ -99,15 +98,15 @@ def get_menu_links():
     return {
         "⛵️游艇价格": {
             "text": "⛵️ <b>游艇价格</b>\n点击下方链接查看更多游艇套餐详情：",
-            "url": "https://t.me/youtingbaby/28"
+            "url": "https://t.me/youtingbaby/348"
         },
         "🏠酒店预定": {
             "text": "🏠 <b>酒店预定</b>\n查看推荐酒店及套餐：",
-            "url": "https://t.me/youtingbaby/137"
+            "url": "https://t.me/youtingbaby/345"
         },
         "💃游艇宝贝": {
             "text": "💃 <b>游艇宝贝</b>\n西港DJ宝贝与派对活动：",
-            "url": "https://t.me/youtingbaby/2"
+            "url": "https://t.me/YachtDJ"
         },
         "🪪护照签证": {
             "text": "🪪 <b>护照签证</b>\n办理护照/签证服务详情：",
@@ -127,7 +126,7 @@ def get_menu_links():
         },
         "🚤快艇包接送": {
             "text": "🚤 <b>快艇包接送</b>\n快艇接送、上岛服务：",
-            "url": "https://t.me/youtingbaby/136"
+            "url": "https://t.me/youtingbaby/114"
         }
     }
 
