@@ -105,10 +105,123 @@ async def book_now_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     await query.edit_message_text("请发送您的联系方式和需求，我们会有专人联系您！")
 
+from telegram.ext import MessageHandler, filters
+
+# 底部菜单按钮与频道图文信息链接映射
+def get_menu_links():
+    return {
+        "⛵️游艇价格": {
+            "text": "⛵️ <b>游艇价格</b>\n点击下方链接查看更多游艇套餐详情：",
+            "url": "https://t.me/youtingbaby/28"
+        },
+        "🏠酒店预定": {
+            "text": "🏠 <b>酒店预定</b>\n查看推荐酒店及套餐：",
+            "url": "https://t.me/youtingbaby/137"
+        },
+        "💃游艇宝贝": {
+            "text": "💃 <b>游艇宝贝</b>\n西港DJ宝贝与派对活动：",
+            "url": "https://t.me/youtingbaby/2"
+        },
+        "🪪护照签证": {
+            "text": "🪪 <b>护照签证</b>\n办理护照/签证服务详情：",
+            "url": "https://t.me/youtingbaby/134"
+        },
+        "🚁直升机": {
+            "text": "🚁 <b>直升机服务</b>\n包机/观光服务介绍：",
+            "url": "https://t.me/youtingbaby/139"
+        },
+        "🚗接机租车": {
+            "text": "🚗 <b>接机租车</b>\n机场接送/包车服务：",
+            "url": "https://t.me/youtingbaby/138"
+        },
+        "🪪驾驶证办理": {
+            "text": "🪪 <b>驾驶证办理</b>\n柬埔寨/国际驾照服务：",
+            "url": "https://t.me/youtingbaby/135"
+        },
+        "🚤快艇包接送": {
+            "text": "🚤 <b>快艇包接送</b>\n快艇接送、上岛服务：",
+            "url": "https://t.me/youtingbaby/136"
+        }
+    }
+
+async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_input = update.message.text.strip().replace(' ', '').lower()
+    menu_links = get_menu_links()
+    matched = None
+    for key in menu_links:
+        # 关键词模糊匹配，忽略空格和大小写
+        if key.replace(' ', '').lower() in user_input or user_input in key.replace(' ', '').lower():
+            matched = menu_links[key]
+            break
+    if matched:
+        await update.message.reply_text(
+            f"{matched['text']}\n<a href='{matched['url']}'>点击查看图文详情</a>",
+            parse_mode="HTML",
+            disable_web_page_preview=False
+        )
+    else:
+        await update.message.reply_text("请选择底部菜单中的功能，或输入 /start 返回主菜单。", reply_markup=reply_markup)
+
 TOKEN = os.environ.get("TOKEN")
 application = Application.builder().token(TOKEN).build()
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CallbackQueryHandler(book_now_callback, pattern='^book_now$'))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu))
+
+
+# 初始化 Telegram Application
+main_loop = asyncio.new_event_loop()
+asyncio.set_event_loop(main_loop)
+main_loop.run_until_complete(application.initialize())
+
+app = Flask(__name__)
+
+@app.route("/", methods=["POST"])
+def webhook():
+    update_json = request.get_json(force=True)
+    update = Update.de_json(update_json, application.bot)
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    loop.run_until_complete(application.process_update(update))
+    return "ok"
+
+@app.route("/", methods=["GET"])
+def index():
+    return "Bot is running!", 200
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+        "url": "https://t.me/youtingbaby/136"
+        }
+    }
+
+async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_input = update.message.text.strip().replace(' ', '').lower()
+    menu_links = get_menu_links()
+    matched = None
+    for key in menu_links:
+        # 关键词模糊匹配，忽略空格和大小写
+        if key.replace(' ', '').lower() in user_input or user_input in key.replace(' ', '').lower():
+            matched = menu_links[key]
+            break
+    if matched:
+        await update.message.reply_text(
+            f"{matched['text']}\n<a href='{matched['url']}'>点击查看图文详情</a>",
+            parse_mode="HTML",
+            disable_web_page_preview=False
+        )
+    else:
+        await update.message.reply_text("请选择底部菜单中的功能，或输入 /start 返回主菜单。", reply_markup=reply_markup)
+
+TOKEN = os.environ.get("TOKEN")
+application = Application.builder().token(TOKEN).build()
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CallbackQueryHandler(book_now_callback, pattern='^book_now$'))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu))
+
 
 # 初始化 Telegram Application
 main_loop = asyncio.new_event_loop()
