@@ -3,7 +3,7 @@ import asyncio
 import logging
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
 
 # 启用日志记录
 logging.basicConfig(level=logging.INFO)
@@ -95,9 +95,6 @@ async def book_now_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     await query.edit_message_text("请发送您的联系方式和需求，我们会有专人联系您！")
 
-from telegram.ext import MessageHandler, filters
-
-# 底部菜单按钮与频道图文信息链接映射
 def get_menu_links():
     return {
         "⛵️游艇价格": {
@@ -152,72 +149,19 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("请选择底部菜单中的功能，或输入 /start 返回主菜单。", reply_markup=reply_markup)
 
+# Telegram bot 初始化
 TOKEN = os.environ.get("TOKEN")
 application = Application.builder().token(TOKEN).build()
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CallbackQueryHandler(book_now_callback, pattern='^book_now$'))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu))
 
-
 # 初始化 Telegram Application
 main_loop = asyncio.new_event_loop()
 asyncio.set_event_loop(main_loop)
 main_loop.run_until_complete(application.initialize())
 
-app = Flask(__name__)
-
-@app.route("/", methods=["POST"])
-def webhook():
-    update_json = request.get_json(force=True)
-    update = Update.de_json(update_json, application.bot)
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    loop.run_until_complete(application.process_update(update))
-    return "ok"
-
-@app.route("/", methods=["GET"])
-def index():
-    return "Bot is running!", 200
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
-        "url": "https://t.me/youtingbaby/136"
-        }
-    }
-
-async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_input = update.message.text.strip().replace(' ', '').lower()
-    menu_links = get_menu_links()
-    matched = None
-    for key in menu_links:
-        # 关键词模糊匹配，忽略空格和大小写
-        if key.replace(' ', '').lower() in user_input or user_input in key.replace(' ', '').lower():
-            matched = menu_links[key]
-            break
-    if matched:
-        await update.message.reply_text(
-            f"{matched['text']}\n<a href='{matched['url']}'>点击查看图文详情</a>",
-            parse_mode="HTML",
-            disable_web_page_preview=False
-        )
-    else:
-        await update.message.reply_text("请选择底部菜单中的功能，或输入 /start 返回主菜单。", reply_markup=reply_markup)
-
-TOKEN = os.environ.get("TOKEN")
-application = Application.builder().token(TOKEN).build()
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CallbackQueryHandler(book_now_callback, pattern='^book_now$'))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu))
-
-
-# 初始化 Telegram Application
-main_loop = asyncio.new_event_loop()
-asyncio.set_event_loop(main_loop)
-main_loop.run_until_complete(application.initialize())
-
+# Flask app
 app = Flask(__name__)
 
 @app.route("/", methods=["POST"])
