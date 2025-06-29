@@ -4,6 +4,7 @@ import logging
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
+import re
 
 # 启用日志记录
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +25,49 @@ reply_keyboard = [
     ["🪪驾驶证办理", "🚤快艇包接送"]
 ]
 reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+
+# 广告关键词过滤
+AD_KEYWORDS = [
+    r"http[s]?://", r"t\.me/", r"tg://", r"微信", r"VX", r"加群", r"推广", r"广告", r"QQ", r"@[a-zA-Z0-9_]{4,}"
+]
+
+# 敏感行业词监控关键词
+SENSITIVE_KEYWORDS = [
+    "游艇价格", "包船", "西港游艇", "高龙岛酒店", "酒店", "直升机", "海钓", "签证", "劳工证", "驾照", "护照", "游艇", "上岛", "皇家", "机票"
+]
+
+async def filter_ads(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text or ""
+    # 检查是否包含广告关键词
+    if any(re.search(pattern, text, re.IGNORECASE) for pattern in AD_KEYWORDS):
+        try:
+            await update.message.delete()
+            # 回复警告消息
+            warn_msg = await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                reply_to_message_id=update.message.message_id,
+                text="检测到广告，已删除。"
+            )
+            # 5分钟后自动删除警告
+            await asyncio.sleep(300)
+            await context.bot.delete_message(chat_id=warn_msg.chat_id, message_id=warn_msg.message_id)
+        except Exception as e:
+            logging.error(f"广告处理失败: {e}")
+
+# 敏感词监控：只通知管理员，不群内提示
+async def monitor_sensitive(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text or ""
+    if any(word in text for word in SENSITIVE_KEYWORDS):
+        try:
+            msg = (
+                f"⚠️ 监控到敏感词\n"
+                f"群: {update.effective_chat.title or update.effective_chat.id}\n"
+                f"用户: {update.effective_user.full_name} (@{update.effective_user.username or '无'})\n"
+                f"内容: {text}"
+            )
+            await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
+        except Exception as e:
+            logging.error(f"敏感词监控失败: {e}")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info("Received /start command")
@@ -151,9 +195,13 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Telegram bot 初始化
 TOKEN = os.environ.get("TOKEN")
 application = Application.builder().token(TOKEN).build()
+# 优先处理广告过滤
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, filter_ads), group=0)
+# 敏感词监控（只通知管理员）
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, monitor_sensitive), group=1)
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CallbackQueryHandler(book_now_callback, pattern='^book_now$'))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu), group=2)
 
 # 初始化 Telegram Application
 main_loop = asyncio.new_event_loop()
