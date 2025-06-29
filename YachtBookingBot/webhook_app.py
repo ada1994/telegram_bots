@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 # 游艇信息字典
 yacht_sizes = {
-    "🚤 游艇推荐 More yachts": "https://t.me/youtingbaby/166", 
+    "🚤 游艇推荐 More yachts": "https://t.me/youtingbaby/166",
     "💃 游艇宝贝 DJ Baby": "http://t.me/YachtDJ", 
     "🏠 酒店推荐（旅行社代登记入住）": "https://t.me/youtingbaby/345"
 }
