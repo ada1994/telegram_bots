@@ -33,8 +33,24 @@ AD_KEYWORDS = [
 
 # 敏感行业词监控关键词
 SENSITIVE_KEYWORDS = [
-    "游艇价格", "包船", "西港游艇", "高龙岛酒店", "酒店", "直升机", "海钓", "签证", "劳工证", "驾照", "护照", "游艇", "上岛", "皇家", "机票"
+    "游艇价格", "包船", "西港游艇", "高龙岛酒店", "酒店", "直升机", "海钓", "签证", "劳工证", "驾照", "护照", "游艇", "上岛", "皇家", "机票",
+    "多少", "费用", "情人岛", "天堂岛", "撒冷岛", "游艇宝贝", "DJ", "多少钱", "什么价格", "费用"
 ]
+
+async def is_owner(bot, chat_id, user_id):
+    try:
+        member = await bot.get_chat_member(chat_id, user_id)
+        return member.status == 'creator'
+    except Exception as e:
+        logging.error(f"获取用户身份失败: {e}")
+        return False
+
+async def auto_delete_message(bot, chat_id, message_id, delay=300):
+    try:
+        await asyncio.sleep(delay)
+        await bot.delete_message(chat_id=chat_id, message_id=message_id)
+    except Exception as e:
+        logging.error(f"自动删除消息失败: {e}")
 
 async def filter_ads(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text or ""
@@ -49,8 +65,7 @@ async def filter_ads(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text="检测到广告，已删除。"
             )
             # 5分钟后自动删除警告
-            await asyncio.sleep(300)
-            await context.bot.delete_message(chat_id=warn_msg.chat_id, message_id=warn_msg.message_id)
+            asyncio.create_task(auto_delete_message(context.bot, warn_msg.chat_id, warn_msg.message_id, 300))
         except Exception as e:
             logging.error(f"广告处理失败: {e}")
 
@@ -65,7 +80,8 @@ async def monitor_sensitive(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"用户: {update.effective_user.full_name} (@{update.effective_user.username or '无'})\n"
                 f"内容: {text}"
             )
-            await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
+            admin_msg = await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
+            asyncio.create_task(auto_delete_message(context.bot, ADMIN_ID, admin_msg.message_id, 300))
         except Exception as e:
             logging.error(f"敏感词监控失败: {e}")
 
@@ -74,10 +90,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
     # 1. 先发底部菜单
-    await update.message.reply_text(
+    menu_msg = await update.message.reply_text(
         "了解其他服务，请点击底部菜单选择：",
         reply_markup=reply_markup
     )
+    # 只有非 owner 才自动删除机器人消息和用户消息
+    if not await is_owner(context.bot, update.message.chat_id, update.effective_user.id):
+        asyncio.create_task(auto_delete_message(context.bot, menu_msg.chat_id, menu_msg.message_id, 300))
+        asyncio.create_task(auto_delete_message(context.bot, update.message.chat_id, update.message.message_id, 300))
 
     # 2. 再发游艇信息采集（InlineKeyboard）
     keyboard = [
@@ -115,12 +135,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Boat Babes | Water Sports | Diving & Snorkeling | Jet Ski | ATV | Island Stay & Meals\n\n"
         "📩 预订请点击菜单或联系人工客服 👉 @Boatbabes"
     )
-    await update.message.reply_text(
+    info_msg = await update.message.reply_text(
         message_text,
         reply_markup=inline_markup,
         parse_mode="HTML",
         disable_web_page_preview=True
     )
+    if not await is_owner(context.bot, update.message.chat_id, update.effective_user.id):
+        asyncio.create_task(auto_delete_message(context.bot, info_msg.chat_id, info_msg.message_id, 300))
 
     # 通知管理员
     msg = (
@@ -129,7 +151,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👤 Username: @{user.username if user.username else '无'}"
     )
     try:
-        await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
+        admin_msg = await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
+        asyncio.create_task(auto_delete_message(context.bot, ADMIN_ID, admin_msg.message_id, 300))
     except Exception as e:
         logging.error(f"通知管理员失败: {e}")
 
@@ -184,13 +207,20 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             matched = menu_links[key]
             break
     if matched:
-        await update.message.reply_text(
+        menu_msg = await update.message.reply_text(
             f"{matched['text']}\n<a href='{matched['url']}'>点击查看图文详情</a>",
             parse_mode="HTML",
             disable_web_page_preview=False
         )
+        if not await is_owner(context.bot, update.message.chat_id, update.effective_user.id):
+            asyncio.create_task(auto_delete_message(context.bot, menu_msg.chat_id, menu_msg.message_id, 300))
     else:
-        await update.message.reply_text("请选择底部菜单中的功能，或输入 /start 返回主菜单。", reply_markup=reply_markup)
+        menu_msg = await update.message.reply_text("请选择底部菜单中的功能，或输入 /start 返回主菜单。", reply_markup=reply_markup)
+        if not await is_owner(context.bot, update.message.chat_id, update.effective_user.id):
+            asyncio.create_task(auto_delete_message(context.bot, menu_msg.chat_id, menu_msg.message_id, 300))
+    # 删除用户的原始消息（非 owner）
+    if not await is_owner(context.bot, update.message.chat_id, update.effective_user.id):
+        asyncio.create_task(auto_delete_message(context.bot, update.message.chat_id, update.message.message_id, 300))
 
 # Telegram bot 初始化
 TOKEN = os.environ.get("TOKEN")
