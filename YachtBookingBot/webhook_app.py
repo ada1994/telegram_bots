@@ -71,14 +71,14 @@ async def filter_ads(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # 敏感词监控：只通知管理员，不群内提示
 async def monitor_sensitive(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text or ""
-    if any(word in text for word in SENSITIVE_KEYWORDS):
+    text = (update.message.text or "").replace(' ', '').lower()
+    if any(word.lower() in text for word in SENSITIVE_KEYWORDS):
         try:
             msg = (
                 f"⚠️ 监控到敏感词\n"
                 f"群: {update.effective_chat.title or update.effective_chat.id}\n"
                 f"用户: {update.effective_user.full_name} (@{update.effective_user.username or '无'})\n"
-                f"内容: {text}"
+                f"内容: {update.message.text or ''}"
             )
             admin_msg = await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
             asyncio.create_task(auto_delete_message(context.bot, ADMIN_ID, admin_msg.message_id, 300))
