@@ -65,7 +65,7 @@ async def filter_ads(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text="检测到广告，已删除。"
             )
             # 5分钟后自动删除警告
-            asyncio.create_task(auto_delete_message(context.bot, warn_msg.chat_id, warn_msg.message_id, 300))
+            asyncio.create_task(auto_delete_message(context.bot, warn_msg.chat_id, warn_msg.message_id, 120))
         except Exception as e:
             logging.error(f"广告处理失败: {e}")
 
@@ -81,7 +81,7 @@ async def monitor_sensitive(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"内容: {update.message.text or ''}"
             )
             admin_msg = await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
-            asyncio.create_task(auto_delete_message(context.bot, ADMIN_ID, admin_msg.message_id, 300))
+            asyncio.create_task(auto_delete_message(context.bot, ADMIN_ID, admin_msg.message_id, 120))
         except Exception as e:
             logging.error(f"敏感词监控失败: {e}")
 
@@ -96,8 +96,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     # 只有非 owner 才自动删除机器人消息和用户消息
     if not await is_owner(context.bot, update.message.chat_id, update.effective_user.id):
-        asyncio.create_task(auto_delete_message(context.bot, menu_msg.chat_id, menu_msg.message_id, 300))
-        asyncio.create_task(auto_delete_message(context.bot, update.message.chat_id, update.message.message_id, 300))
+        asyncio.create_task(auto_delete_message(context.bot, menu_msg.chat_id, menu_msg.message_id, 120))
+        asyncio.create_task(auto_delete_message(context.bot, update.message.chat_id, update.message.message_id, 120))
 
     # 2. 再发游艇信息采集（InlineKeyboard）
     keyboard = [
@@ -142,7 +142,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         disable_web_page_preview=True
     )
     if not await is_owner(context.bot, update.message.chat_id, update.effective_user.id):
-        asyncio.create_task(auto_delete_message(context.bot, info_msg.chat_id, info_msg.message_id, 300))
+        asyncio.create_task(auto_delete_message(context.bot, info_msg.chat_id, info_msg.message_id, 120))
 
     # 通知管理员
     msg = (
@@ -152,7 +152,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     try:
         admin_msg = await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
-        asyncio.create_task(auto_delete_message(context.bot, ADMIN_ID, admin_msg.message_id, 300))
+        asyncio.create_task(auto_delete_message(context.bot, ADMIN_ID, admin_msg.message_id, 120))
     except Exception as e:
         logging.error(f"通知管理员失败: {e}")
 
@@ -213,14 +213,14 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             disable_web_page_preview=False
         )
         if not await is_owner(context.bot, update.message.chat_id, update.effective_user.id):
-            asyncio.create_task(auto_delete_message(context.bot, menu_msg.chat_id, menu_msg.message_id, 300))
+            asyncio.create_task(auto_delete_message(context.bot, menu_msg.chat_id, menu_msg.message_id, 120))
     else:
         menu_msg = await update.message.reply_text("请选择底部菜单中的功能，或输入 /start 返回主菜单。", reply_markup=reply_markup)
         if not await is_owner(context.bot, update.message.chat_id, update.effective_user.id):
-            asyncio.create_task(auto_delete_message(context.bot, menu_msg.chat_id, menu_msg.message_id, 300))
+            asyncio.create_task(auto_delete_message(context.bot, menu_msg.chat_id, menu_msg.message_id, 120))
     # 删除用户的原始消息（非 owner）
     if not await is_owner(context.bot, update.message.chat_id, update.effective_user.id):
-        asyncio.create_task(auto_delete_message(context.bot, update.message.chat_id, update.message.message_id, 300))
+        asyncio.create_task(auto_delete_message(context.bot, update.message.chat_id, update.message.message_id, 120))
 
 # Telegram bot 初始化
 TOKEN = os.environ.get("TOKEN")
