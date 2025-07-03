@@ -358,7 +358,7 @@ application.add_handler(CommandHandler("edit_button", edit_button))
 application.add_handler(CommandHandler("remove_button", remove_button))
 application.add_handler(CommandHandler("show_menu", show_menu))
 # 管理员专属：图片+文字自动带菜单栏
-application.add_handler(MessageHandler(filters.PHOTO & filters.USER(user_id=ADMIN_ID), admin_photo_handler))
+application.add_handler(MessageHandler(filters.PHOTO & filters.User(user_id=ADMIN_ID), admin_photo_handler))
 
 # 优先处理广告过滤
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, filter_ads), group=0)
