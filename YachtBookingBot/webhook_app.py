@@ -5,6 +5,29 @@ from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
 import re
+import json
+MENU_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'menu_config.json')
+
+# 加载菜单栏按钮配置
+def load_menu_config():
+    try:
+        with open(MENU_CONFIG_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {"buttons": []}
+
+def save_menu_config(config):
+    with open(MENU_CONFIG_PATH, 'w', encoding='utf-8') as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+
+def get_custom_keyboard():
+    config = load_menu_config()
+    buttons = config.get('buttons', [])
+    keyboard = []
+    for btn in buttons:
+        keyboard.append([InlineKeyboardButton(btn['text'], url=btn['url'])])
+    return InlineKeyboardMarkup(keyboard) if keyboard else None
+
 
 # 启用日志记录
 logging.basicConfig(level=logging.INFO)
@@ -84,6 +107,109 @@ async def monitor_sensitive(update: Update, context: ContextTypes.DEFAULT_TYPE):
             asyncio.create_task(auto_delete_message(context.bot, ADMIN_ID, admin_msg.message_id, 120))
         except Exception as e:
             logging.error(f"敏感词监控失败: {e}")
+
+# --- 管理菜单相关命令，仅管理员可用 ---
+async def set_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    await update.message.reply_text(
+        "菜单管理命令：\n"
+        "/add_button 名称 链接  —— 添加按钮\n"
+        "/edit_button 序号 新名称 新链接  —— 修改按钮\n"
+        "/remove_button 序号  —— 删除按钮\n"
+        "/show_menu  —— 查看当前菜单栏\n"
+        "最多支持4个按钮。"
+    )
+
+async def add_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if len(context.args) < 2:
+        await update.message.reply_text("用法：/add_button 名称 链接")
+        return
+    name, url = context.args[0], context.args[1]
+    config = load_menu_config()
+    buttons = config.get('buttons', [])
+    if len(buttons) >= 4:
+        await update.message.reply_text("最多只能有4个按钮！")
+        return
+    buttons.append({"text": name, "url": url})
+    config['buttons'] = buttons
+    save_menu_config(config)
+    await update.message.reply_text(f"已添加按钮：{name} -> {url}")
+
+async def edit_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if len(context.args) < 3:
+        await update.message.reply_text("用法：/edit_button 序号 新名称 新链接")
+        return
+    idx, name, url = context.args[0], context.args[1], context.args[2]
+    try:
+        idx = int(idx) - 1
+    except Exception:
+        await update.message.reply_text("序号必须为数字（从1开始）")
+        return
+    config = load_menu_config()
+    buttons = config.get('buttons', [])
+    if idx < 0 or idx >= len(buttons):
+        await update.message.reply_text("序号超出范围！")
+        return
+    buttons[idx] = {"text": name, "url": url}
+    config['buttons'] = buttons
+    save_menu_config(config)
+    await update.message.reply_text(f"已修改第{idx+1}个按钮为：{name} -> {url}")
+
+async def remove_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if len(context.args) < 1:
+        await update.message.reply_text("用法：/remove_button 序号")
+        return
+    idx = context.args[0]
+    try:
+        idx = int(idx) - 1
+    except Exception:
+        await update.message.reply_text("序号必须为数字（从1开始）")
+        return
+    config = load_menu_config()
+    buttons = config.get('buttons', [])
+    if idx < 0 or idx >= len(buttons):
+        await update.message.reply_text("序号超出范围！")
+        return
+    btn = buttons.pop(idx)
+    config['buttons'] = buttons
+    save_menu_config(config)
+    await update.message.reply_text(f"已删除按钮：{btn['text']}")
+
+async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    config = load_menu_config()
+    buttons = config.get('buttons', [])
+    if not buttons:
+        await update.message.reply_text("当前没有设置任何按钮。")
+        return
+    msg = '\n'.join([f"{i+1}. {b['text']} -> {b['url']}" for i, b in enumerate(buttons)])
+    await update.message.reply_text(f"当前菜单栏按钮：\n{msg}")
+
+# --- 管理员专属：图片+文字自动带菜单栏 ---
+async def admin_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if update.message.photo:
+        photo_file = update.message.photo[-1].file_id
+        caption = update.message.caption or ""
+        reply_markup = get_custom_keyboard()
+        await context.bot.send_photo(
+            chat_id=update.effective_user.id,
+            photo=photo_file,
+            caption=caption,
+            reply_markup=reply_markup
+        )
+        await update.message.reply_text("已生成带菜单栏的图文消息，可手动转发到频道/群组。")
+    else:
+        await update.message.reply_text("请发送图片，并附带文字说明。")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info("Received /start command")
@@ -225,6 +351,15 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Telegram bot 初始化
 TOKEN = os.environ.get("TOKEN")
 application = Application.builder().token(TOKEN).build()
+# 管理员专属菜单命令
+application.add_handler(CommandHandler("set_menu", set_menu))
+application.add_handler(CommandHandler("add_button", add_button))
+application.add_handler(CommandHandler("edit_button", edit_button))
+application.add_handler(CommandHandler("remove_button", remove_button))
+application.add_handler(CommandHandler("show_menu", show_menu))
+# 管理员专属：图片+文字自动带菜单栏
+application.add_handler(MessageHandler(filters.PHOTO & filters.USER(user_id=ADMIN_ID), admin_photo_handler))
+
 # 优先处理广告过滤
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, filter_ads), group=0)
 # 敏感词监控（只通知管理员）

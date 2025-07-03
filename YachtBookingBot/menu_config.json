@@ -1,0 +1,6 @@
+{
+  "buttons": [
+    {"text": "官网", "url": "https://example.com"},
+    {"text": "联系客服", "url": "https://t.me/your_support_bot"}
+  ]
+}
