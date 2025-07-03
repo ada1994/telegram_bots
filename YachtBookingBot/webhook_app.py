@@ -95,6 +95,19 @@ async def filter_ads(update: Update, context: ContextTypes.DEFAULT_TYPE):
             asyncio.create_task(auto_delete_message(context.bot, warn_msg.chat_id, warn_msg.message_id, 120))
         except Exception as e:
             logging.error(f"广告处理失败: {e}")
+    else:
+        # 非广告消息，群成员自动删除逻辑
+        chat = update.effective_chat
+        user = update.effective_user
+        # 只在群聊中生效
+        if chat.type in ["group", "supergroup"]:
+            try:
+                member = await context.bot.get_chat_member(chat.id, user.id)
+                if member.status not in ["administrator", "creator"]:
+                    # 2分钟后自动删除普通成员消息
+                    asyncio.create_task(auto_delete_message(context.bot, chat.id, update.message.message_id, 120))
+            except Exception as e:
+                logging.error(f"自动删除群成员消息失败: {e}")
 
 # 敏感词监控：只通知管理员，不群内提示
 async def monitor_sensitive(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -205,23 +218,45 @@ async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = '\n'.join([f"{i+1}. {b['text']} -> {b['url']}" for i, b in enumerate(buttons)])
     await update.message.reply_text(f"当前菜单栏按钮：\n{msg}")
 
-# --- 管理员专属：图片+文字自动带菜单栏 ---
+# --- 管理员专属：动态推送目标和带菜单栏 ---
+admin_post_targets = {}  # user_id -> target_id
+
+async def post_to(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if not context.args:
+        await update.message.reply_text("用法：/post_to <群组或频道ID>")
+        return
+    target_id = context.args[0]
+    admin_post_targets[update.effective_user.id] = target_id
+    await update.message.reply_text(f"本次推送目标已设置为：{target_id}\n请发送图片+文字，机器人会自动推送到目标。")
+
 async def admin_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
-    if update.message.photo:
-        photo_file = update.message.photo[-1].file_id
-        caption = update.message.caption or ""
-        reply_markup = get_custom_keyboard()
+    photo_file = update.message.photo[-1].file_id
+    caption = update.message.caption or ""
+    reply_markup = get_custom_keyboard()
+    target_id = admin_post_targets.pop(update.effective_user.id, None)
+    if target_id:
+        try:
+            await context.bot.send_photo(
+                chat_id=target_id,
+                photo=photo_file,
+                caption=caption,
+                reply_markup=reply_markup
+            )
+            await update.message.reply_text(f"已推送到 {target_id}，如需再次推送请重新设置目标。")
+        except Exception as e:
+            await update.message.reply_text(f"推送失败：{e}")
+    else:
         await context.bot.send_photo(
             chat_id=update.effective_user.id,
             photo=photo_file,
             caption=caption,
             reply_markup=reply_markup
         )
-        await update.message.reply_text("已生成带菜单栏的图文消息，可手动转发到频道/群组。")
-    else:
-        await update.message.reply_text("请发送图片，并附带文字说明。")
+        await update.message.reply_text("已生成带菜单栏的图文消息，可手动转发到频道/群组。\n如需机器人主动推送，请先用 /post_to <目标ID> 设置目标。")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info("Received /start command")
@@ -369,7 +404,9 @@ application.add_handler(CommandHandler("add_button", add_button))
 application.add_handler(CommandHandler("edit_button", edit_button))
 application.add_handler(CommandHandler("remove_button", remove_button))
 application.add_handler(CommandHandler("show_menu", show_menu))
-# 管理员专属：图片+文字自动带菜单栏
+# 管理员专属：动态推送目标命令
+application.add_handler(CommandHandler("post_to", post_to))
+# 管理员专属：图片+文字自动带菜单栏/推送
 application.add_handler(MessageHandler(filters.PHOTO & filters.User(user_id=ADMIN_ID), admin_photo_handler))
 
 # 优先处理广告过滤
