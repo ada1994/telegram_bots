@@ -137,6 +137,7 @@ async def add_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     config['buttons'] = buttons
     save_menu_config(config)
     await update.message.reply_text(f"已添加按钮：{name} -> {url}")
+    await update.message.reply_text(f"[DEBUG] 当前按钮配置: {json.dumps(config, ensure_ascii=False)}")
 
 async def edit_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -159,6 +160,7 @@ async def edit_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     config['buttons'] = buttons
     save_menu_config(config)
     await update.message.reply_text(f"已修改第{idx+1}个按钮为：{name} -> {url}")
+    await update.message.reply_text(f"[DEBUG] 当前按钮配置: {json.dumps(config, ensure_ascii=False)}")
 
 async def remove_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -181,6 +183,7 @@ async def remove_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     config['buttons'] = buttons
     save_menu_config(config)
     await update.message.reply_text(f"已删除按钮：{btn['text']}")
+    await update.message.reply_text(f"[DEBUG] 当前按钮配置: {json.dumps(config, ensure_ascii=False)}")
 
 async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
