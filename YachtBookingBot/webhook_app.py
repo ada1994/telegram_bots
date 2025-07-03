@@ -24,8 +24,12 @@ def get_custom_keyboard():
     config = load_menu_config()
     buttons = config.get('buttons', [])
     keyboard = []
-    for btn in buttons:
-        keyboard.append([InlineKeyboardButton(btn['text'], url=btn['url'])])
+    # 每2个按钮一行
+    for i in range(0, len(buttons), 2):
+        row = []
+        for btn in buttons[i:i+2]:
+            row.append(InlineKeyboardButton(btn['text'], url=btn['url']))
+        keyboard.append(row)
     return InlineKeyboardMarkup(keyboard) if keyboard else None
 
 
