@@ -131,7 +131,11 @@ async def add_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
         await update.message.reply_text("用法：/add_button 名称 链接")
         return
-    name, url = context.args[0], context.args[1]
+    try:
+        name, url = ' '.join(context.args[:-1]), context.args[-1]
+    except Exception:
+        await update.message.reply_text("参数解析失败，请检查格式。")
+        return
     config = load_menu_config()
     buttons = config.get('buttons', [])
     if len(buttons) >= 4:
@@ -149,11 +153,12 @@ async def edit_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 3:
         await update.message.reply_text("用法：/edit_button 序号 新名称 新链接")
         return
-    idx, name, url = context.args[0], context.args[1], context.args[2]
     try:
-        idx = int(idx) - 1
+        idx = int(context.args[0]) - 1
+        name = ' '.join(context.args[1:-1])
+        url = context.args[-1]
     except Exception:
-        await update.message.reply_text("序号必须为数字（从1开始）")
+        await update.message.reply_text("参数解析失败，请检查格式。")
         return
     config = load_menu_config()
     buttons = config.get('buttons', [])
