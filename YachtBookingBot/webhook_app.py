@@ -404,6 +404,22 @@ application.add_handler(CommandHandler("add_button", add_button))
 application.add_handler(CommandHandler("edit_button", edit_button))
 application.add_handler(CommandHandler("remove_button", remove_button))
 application.add_handler(CommandHandler("show_menu", show_menu))
+# 管理员专属：通过用户ID直接联系用户
+async def contact_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("无权限")
+        return
+    if len(context.args) < 2:
+        await update.message.reply_text("用法：/contact_id <用户ID> <消息内容>")
+        return
+    try:
+        user_id = int(context.args[0])
+        msg = ' '.join(context.args[1:])
+        await context.bot.send_message(chat_id=user_id, text=msg)
+        await update.message.reply_text(f"已发送消息给 {user_id}")
+    except Exception as e:
+        await update.message.reply_text(f"发送失败：{e}")
+application.add_handler(CommandHandler("contact_id", contact_id))
 # 管理员专属：动态推送目标命令
 application.add_handler(CommandHandler("post_to", post_to))
 # 管理员专属：图片+文字自动带菜单栏/推送
@@ -420,6 +436,29 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_m
 # 初始化 Telegram Application
 main_loop = asyncio.new_event_loop()
 asyncio.set_event_loop(main_loop)
+main_loop.run_until_complete(application.initialize())
+
+# Flask app
+app = Flask(__name__)
+
+@app.route("/", methods=["POST"])
+def webhook():
+    update_json = request.get_json(force=True)
+    update = Update.de_json(update_json, application.bot)
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    loop.run_until_complete(application.process_update(update))
+    return "ok"
+
+@app.route("/", methods=["GET"])
+def index():
+    return "Bot is running!", 200
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))io.set_event_loop(main_loop)
 main_loop.run_until_complete(application.initialize())
 
 # Flask app
